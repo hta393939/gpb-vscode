@@ -54,10 +54,10 @@ class Misc {
  */
     async parseGPB(file) {
         const ab = await file.arrayBuffer();
-        const parser = new GPB.Model();
-        const result = await parser.parseGPB(ab);
+        const gpbmodel = new GPB.Model();
+        await gpbmodel.parseGPB(ab);
         const maker = new GPB.Maker();
-        const model = maker.makeModel(result);
+        const model = maker.makeModel(gpbmodel);
         this.renderer.scene.add(model);
     }
 

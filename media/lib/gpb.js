@@ -199,7 +199,7 @@ class VertexElement {
     static POSITION = 'POSITION';
     static NORMAL = 'NORMAL';
     static UV0 = 'TEXCOORD0';
-    static WEIGHT = 'BLENDWEIGHTS';
+    static WEIGHTS = 'BLENDWEIGHTS';
     static INDICES = 'BLENDINDICES';
     constructor() {
         this.usage = '';
@@ -207,7 +207,9 @@ class VertexElement {
  * 値の個数
  */
         this.size = 0;
-
+/**
+ * この属性の数値を一直線に並べたもの
+ */
         this.buf = new Float32Array(0);
     }
 }
@@ -342,20 +344,9 @@ class Model {
         if (len >= 65536) {
             throw new Error('Over 65536');
         }
-
         this.cur += 4;
-
-        //const ab = new Uint8Array(len);
         const src = new Uint8Array(p.buffer, this.cur, len);
-//        ab.set(src);
-/*
-        for (let i = 0; i < 0; ++i) {
-            ab[i] = src[i];
-        }
-        */
-
         this.cur += len;
-
         return new TextDecoder().decode(src);
     }
 
@@ -748,6 +739,8 @@ class Model {
 
 _global.GPB = _global.GPB || {};
 _global.GPB = {
+    Vertex,
+    VertexElement,
     AnimationChannel,
     Animation,
     Animations,

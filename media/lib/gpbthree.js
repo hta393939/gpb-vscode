@@ -3,6 +3,7 @@
  */
 // need threejs
 // threejs が必要
+// gpb.js が必要
 
 (function(_global) {
 
@@ -20,21 +21,27 @@ class Maker {
     constructor() {
     }
 
+    attrtothree(attrName) {
+        const map = {
+            [GPB.VertexElement.POSITION]: 'position',
+            [GPB.VertexElement.NORMAL]: 'normal',
+            [GPB.VertexElement.UV0]: 'uv',
+            [GPB.VertexElement.WEIGHTS]: 'weights',
+            [GPB.VertexElement.JOINTS]: 'joints',
+        };
+        return map[attrName];
+    }
+
 /**
- * 
+ * GPB.Model から threejs グループを生成する
  * @param {GPB.Model}
- * @returns {Object}
+ * @returns {THREE.Group}
  */
     makeModel(inmodel) {
         const gr = new THREE.Group();
-        gr.userData.gpbscene = {};
-        gr.userData.anims = [];
+        gr.userData.gpbmodel = inmodel;
+        gr.userData.parts = [];
         {
-            const model = {
-                chunks: [],
-                meshes: [],
-            };
-
             { // メッシュ
                 const meshNum = inmodel._meshes.length;
                 log.log('meshNum', meshNum);
@@ -42,60 +49,13 @@ class Maker {
                 for (let i = 0; i < meshNum; ++i) {
                     const gpbmesh = inmodel._meshes[i];
 /**
- * オブジェクト
+ * 1メッシュの1ジオメトリ。
+ * 複数のパートから参照される可能性がある。
  */
-                    const mesh = {
-                        attrs: [],
-
-                        geo: new THREE.BufferGeometry(),
-                        mtl: new THREE.MeshStandardMaterial(),
-                    };
-                    model.meshes.push(mesh);
-
-                    const anum = this.r32s(p, 1)[0];
-                    let sum = 0;
-                    for (let j = 0; j < anum; ++j) {
-                        const ns = this.r32s(p, 2);
-                        const at = {
-                            usage: ns[0],
-                            size: ns[1],
-                            threeattr: this.usagetoattrname[ns[0]],
-                        };
-                        mesh.attrs.push(at);
-
-                        sum += at.size;
-                    }
-                    log.log('attr数', anum, sum);
-
-                    const vtxbyte = this.r32s(p, 1)[0];
-                    const vtxnum = vtxbyte / (sum * 4);
-                    {
-                        for (let k = 0; k < anum; ++k) {
-                            const at = mesh.attrs[k];
-                            at.buf = new Float32Array(at.size * vtxnum);
-                        }
-
-                        for (let j = 0; j < vtxnum; ++j) {
-                            const vtx = this.rfs(p, sum);
-                            let offset = 0;
-
-                            for (let k = 0; k < anum; ++k) {
-                                const at = mesh.attrs[k];
-
-                                const num = at.size;
-                                for (let l = 0; l < num; ++l) {
-                                    at.buf[j * num + l] = vtx[offset];
-                                    offset ++;
-                                }
-                            }
-                        }
-                        log.log('vtxnum', vtxnum);
-
-                        for (let k = 0; k < anum; ++k) {
-                            const at = mesh.attrs[k];
-                            mesh.geo.setAttribute(at.threeattr, new THREE.BufferAttribute(at.buf, at.size));
-                        }
-
+                    const geo = new THREE.BufferGeometry();
+                    for (const attr of gpbmesh.attrs) {
+                        geo.setAttribute(this.attrtothree(attr.usage),
+                            new THREE.BufferAttribute(attr.buf, attr.size));
                     }
 
 // 範囲と半径
@@ -108,11 +68,9 @@ class Maker {
                         log.log('半径', ranges.radius);
                     }
 
-                    const partnum = this.r32s(p, 1)[0];
-                    log.log('partnum', partnum);
+                    for (let j = 0; j < 1; ++j) {
+                        const onegeo = geo.clone();
 
-                    for (let j = 0; j < partnum; ++j) {
-                        const fiattr = this.r32s(p, 3);
                         log.log('0x', fiattr[0].toString(16), fiattr[1].toString(16));
 
                         let fis = [];
@@ -123,38 +81,23 @@ class Maker {
                             fis = this.r32s(p, fiattr[2] / 4);
                             log.log('fis32', fis);
                         }
-                        mesh.geo.setIndex(new THREE.BufferAttribute(fis, 1));
+                        onegeo.setIndex(new THREE.BufferAttribute(fis, 1));
 
                         const indexmax = Math.max(...fis);
                         log.log('indexmax', indexmax); // 範囲チェック向け
+
+                        const mtl = new THREE.MeshStandardMaterial();
+                        const m = new THREE.Mesh(onegeo, mtl);
+                        gr.userData.parts.push(m);
                     }
-
-                    //gr.add(mesh.mesh); // TODO: 違う方法で追加すること
                 }
             }
-            const blockNum = this.r32s(p, 1)[0];
-            this.dumpPos('blockNum 後 シーン前', blockNum);
-            { // シーン
-                gr.userData.gpbscene.nodes = [];
 
-                const cnum = this.r32s(p, 1)[0];
-                for (let i = 0; i < cnum; ++i) {
-                    const node = this.readNode(p);
-
-                    gr.userData.gpbscene.nodes.push(node);
-                }
-
-                const cameraName = this.rs(p);
-                const acs = this.rfs(p, 3);
-
-                gr.userData.gpbscene.cameraName = cameraName;
-                gr.userData.gpbscene.ambientColors = acs;
+            { // シーン 未実装
             }
 
-            if (inmodel._animations) { // アニメ
+            if (false && inmodel._animations) { // アニメ 未実装
                 log.log('animation chunk');
-
-                const numanim = this.r32s(p, 1)[0];
                 for (let i = 0; i < numanim; ++i) {
                     const obj = {};
                     gr.userData.anims.push(obj);
