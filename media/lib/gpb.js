@@ -1,14 +1,32 @@
 /**
- * @file gpbparser.js
+ * @file gpb.js
  */
-
-// 2021/08/07 の最新 4
 
 (function(_global) {
 
 const log = {
     log: console.log.bind(null),
 };
+
+/**
+ * .material の material 記述
+ */
+class MaterialDesc {
+    constructor() {
+        this.name = '';
+/**
+ * 直接の派生元がある場合
+ * @type {string}
+ */
+        this.superName = '';
+/**
+ * これまでの { の個数。} が来たら減らす
+ */
+        this._level = 0;
+
+        // その他のプロパティを保持する
+    }
+}
 
 /**
  * ノードクラス
@@ -185,17 +203,52 @@ class VertexElement {
     static INDICES = 'BLENDINDICES';
     constructor() {
         this.usage = '';
+/**
+ * 値の個数
+ */
         this.size = 0;
+
+        this.buf = new Float32Array(0);
     }
 }
 
-class Mesh {
+class Bounds {
     constructor() {
-        this.id = '';
+        this.max = [0, 0, 0];
+        this.min = [0, 0, 0];
+        this.center = [0, 0, 0];
+        this.radius = 0;
     }
 }
 
 /**
+ * 1つ分のメッシュ
+ */
+class Mesh {
+    constructor() {
+        this.id = '';
+/**
+ * 属性
+ * @type {VertexElement[]}
+ */
+        this.attrs = [];
+
+/**
+ * @type {Vertex[]}
+ */
+        this.vertices = [];
+
+        this.bounds = new Bounds();
+
+/**
+ * 未確定
+ */
+        this.faceIndices = [];
+    }
+}
+
+/**
+ * チャンクへの参照
  * https://dev.onionsoft.net/trac/openhsp/browser/trunk/hsp3dish/gameplay/src/Bundle.cpp
  */
 class Reference {
@@ -213,6 +266,10 @@ class Reference {
 
 class RefTable {
     constructor() {
+/**
+ * 参照を格納する
+ * @type {Reference[]}
+ */
         this.references = [];
     }
 }
@@ -229,7 +286,7 @@ class Model {
 /**
  * @type {RefTable}
  */
-        this._reftable = null;
+        this._reftable = new RefTable();
 /**
  * @type {Mesh[]}
  */
@@ -237,11 +294,11 @@ class Model {
 /**
  * @type {Scene}
  */
-        this._scene = null;
+        this._scene = new Scene();
 /**
- * @type {Animations}
+ * @type {Animations[]}
  */
-        this._animations = null;
+        this._animations = [];
 
 
 
@@ -275,7 +332,7 @@ class Model {
     }
 
 /**
- * 文字列取り出す
+ * UTF-8 とみなして文字列取り出す(not Shift_JIS)
  * @param {DataView} p 
  * @param {number} inc 
  * @returns {string}
@@ -288,9 +345,14 @@ class Model {
 
         this.cur += 4;
 
-        const ab = new Uint8Array(len);
+        //const ab = new Uint8Array(len);
         const src = new Uint8Array(p.buffer, this.cur, len);
 //        ab.set(src);
+/*
+        for (let i = 0; i < 0; ++i) {
+            ab[i] = src[i];
+        }
+        */
 
         this.cur += len;
 
@@ -374,12 +436,6 @@ class Model {
         gr.userData.gpbscene = {};
         gr.userData.anims = [];
         {
-
-            const model = {
-                chunks: [],
-                meshes: [],
-            };
-
             let c = 0;
             { // マテリアル
 
@@ -408,27 +464,19 @@ class Model {
 /**
  * オブジェクト
  */
-                    const gpbmesh = new GPB.Mesh();
-                    Object.assign(mesh, {
-                        attrs: [],
-
-                        geo: new THREE.BufferGeometry(),
-                        mtl: new THREE.MeshStandardMaterial(),            
-                    });
+                    const gpbmesh = new Mesh();
                     this._meshes.push(gpbmesh);
 
                     const anum = this.r32s(p, 1)[0];
                     let sum = 0;
                     for (let j = 0; j < anum; ++j) {
                         const ns = this.r32s(p, 2);
-                        const at = {
-                            usage: ns[0],
-                            size: ns[1],
-                            threeattr: this.usagetoattrname[ns[0]],
-                        };
-                        mesh.attrs.push(at);
+                        const attr = new VertexElement();
+                        attr.usage = ns[0];
+                        attr.size = ns[1];
+                        gpbmesh.attrs.push(attr);
 
-                        sum += at.size;
+                        sum += attr.size;
                     }
                     log.log('attr数', anum, sum);
 
@@ -436,7 +484,7 @@ class Model {
                     const vtxnum = vtxbyte / (sum * 4);
                     {
                         for (let k = 0; k < anum; ++k) {
-                            const at = mesh.attrs[k];
+                            const at = gpbmesh.attrs[k];
                             at.buf = new Float32Array(at.size * vtxnum);
                         }
 
@@ -445,7 +493,7 @@ class Model {
                             let offset = 0;
 
                             for (let k = 0; k < anum; ++k) {
-                                const at = mesh.attrs[k];
+                                const at = gpbmesh.attrs[k];
 
                                 const num = at.size;
                                 for (let l = 0; l < num; ++l) {
@@ -455,18 +503,12 @@ class Model {
                             }
                         }
                         log.log('vtxnum', vtxnum);
-
-                        for (let k = 0; k < anum; ++k) {
-                            const at = mesh.attrs[k];
-                            mesh.geo.setAttribute(at.threeattr, new THREE.BufferAttribute(at.buf, at.size));
-                        }
-
                     }
 
 // 範囲と半径
                     const ranges = this.rfs(p, 10);
 //                    log.log('ranges', ranges);
-                    const bounds = new GPB.Bounds();
+                    const bounds = new Bounds();
                     gpbmesh.bounds = bounds;
                     {
                         bounds.min = [ranges[0], ranges[1], ranges[2]];
@@ -493,7 +535,6 @@ class Model {
                             fis = this.r32s(p, fiattr[2] / 4);
                             log.log('fis32', fis);
                         }
-                        mesh.geo.setIndex(new THREE.BufferAttribute(fis, 1));
 
                         const indexmax = Math.max(...fis);
                         log.log('indexmax', indexmax); // 範囲チェック向け
@@ -520,9 +561,6 @@ class Model {
                 gpbscene.cameraName = cameraName;
                 const acs = this.rfs(p, 3);
                 gpbscene.ambientColor = acs;
-
-                gr.userData.gpbscene.cameraName = cameraName;
-                gr.userData.gpbscene.ambientColors = acs;
             }
             this.dumpPos('シーン終了anim前');
 
@@ -580,8 +618,6 @@ class Model {
             }
 
             console.log('ファイル最終位置', this.cur, '/', p.byteLength);
-
-            log.log('model', model);
         }
         return gr;
     }
@@ -658,6 +694,55 @@ class Model {
             console.warn('error fire', arg);
         });
     }
+
+/**
+ * 
+ * @param {string} instr 
+ */
+    parseMaterial(instr) {
+        const ret = {
+            materials: [],
+        };
+        const lines = instr.split('\n');
+        const rematerial = /material\s+(?<name>\S+)(?<rest>.*$)?/;
+        let cur = new MaterialDesc();
+        for (let line of lines) {
+            if (cur.level === 0) { // 外側にいる
+                if (!cur.name) {
+                    const m = rematerial.exec(line);
+                    if (m) {
+                        cur.name = m.groups['name'].trim();
+                        const rest = m.groups['rest'];
+                        // : があったらその手前で区切って派生元とする
+                        if (rest.includes(':')) {
+                            cur.superName = rest.split(':')[0].trim();
+                        }
+                    }
+                }
+
+            }
+
+            if (!cur.name) { // まだ名前が見つかっていないので次の行へ
+                continue;
+            }
+
+            // material 名発見後
+                // 同一行に2つ以上には非対応
+                const l = line.indexOf('{');
+                const r = line.lastIndexOf('}');
+
+                if (r >= 0) {
+                    cur.level -= 1;
+                    if (cur.level === 0) {
+                        ret.materials.push(cur);
+                        cur = new MaterialDesc();
+                    }
+                }
+
+        }
+        return ret;
+    }
+
 
 }
 

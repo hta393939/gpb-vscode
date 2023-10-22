@@ -54,8 +54,8 @@ class Misc {
  */
     async parseGPB(file) {
         const ab = await file.arrayBuffer();
-        const parser = new GPB.Parser();
-        const result = await parser.parseGPB(new DataView(ab));
+        const parser = new GPB.Model();
+        const result = await parser.parseGPB(ab);
         const maker = new GPB.Maker();
         const model = maker.makeModel(result);
         this.renderer.scene.add(model);

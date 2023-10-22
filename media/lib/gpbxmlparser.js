@@ -27,7 +27,7 @@ const toFloats = (s) => {
 };
 
 
-class XMLParser extends _global.GPB.Parser {
+class XMLParser extends _global.GPB.Model {
     constructor() {
     }
 

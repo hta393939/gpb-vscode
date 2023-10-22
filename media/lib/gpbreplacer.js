@@ -2,8 +2,6 @@
  * @file gpbreplacer.js
  */
 
-// 2021/08/07 の最新 4
-
 (function(_global) {
 
 const log = {
@@ -13,7 +11,7 @@ const log = {
 /**
  * .gpb アニメ入れ替え
  */
-class Replacer extends _global.GPB.Parser {
+class Replacer extends _global.GPB.Model {
 /**
  * コンストラクター
  */
