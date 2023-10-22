@@ -195,17 +195,17 @@ class GpbLiteDocument extends Disposable implements vscode.CustomDocument {
  */
 export class GpbLiteEditorProvider implements vscode.CustomEditorProvider<GpbLiteDocument> {
 
-	private static newPawDrawFileId = 1;
+	private static newFileId = 1;
 
 	public static register(context: vscode.ExtensionContext): vscode.Disposable {
-		vscode.commands.registerCommand('catCustoms.pawDraw.new', () => {
+		vscode.commands.registerCommand('gpb-vscode.pawDraw.new', () => {
 			const workspaceFolders = vscode.workspace.workspaceFolders;
 			if (!workspaceFolders) {
 				vscode.window.showErrorMessage("Creating new Paw Draw files currently requires opening a workspace");
 				return;
 			}
 
-			const uri = vscode.Uri.joinPath(workspaceFolders[0].uri, `new-${GpbLiteEditorProvider.newPawDrawFileId++}.pawdraw`)
+			const uri = vscode.Uri.joinPath(workspaceFolders[0].uri, `new-${GpbLiteEditorProvider.newFileId++}.gpb`)
 				.with({ scheme: 'untitled' });
 
 			vscode.commands.executeCommand('vscode.openWith', uri, GpbLiteEditorProvider.viewType);
@@ -225,7 +225,7 @@ export class GpbLiteEditorProvider implements vscode.CustomEditorProvider<GpbLit
 			});
 	}
 
-	private static readonly viewType = 'catCustoms.pawDraw';
+	private static readonly viewType = 'gpb-vscode.pawDraw';
 
 	/**
 	 * Tracks all known webviews
@@ -316,7 +316,7 @@ export class GpbLiteEditorProvider implements vscode.CustomEditorProvider<GpbLit
 		});
 	}
 
-	private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<PawDrawDocument>>();
+	private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<GpbLiteDocument>>();
 	public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
 
 	public saveCustomDocument(document: GpbLiteDocument, cancellation: vscode.CancellationToken): Thenable<void> {
@@ -341,6 +341,13 @@ export class GpbLiteEditorProvider implements vscode.CustomEditorProvider<GpbLit
 	 * Get the static HTML used for in our editor's webviews.
 	 */
 	private getHtmlForWebview(webview: vscode.Webview): string {
+		const base = webview.asWebviewUri(
+			vscode.Uri.joinPath(
+				this._context.extensionUri, 'media'
+			)
+		);
+		const baseStr = base.toString() + '/';
+
 		// Local path to script and css for the webview
 		const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
 			this._context.extensionUri, 'media', 'pawDraw.js'));
@@ -359,9 +366,10 @@ export class GpbLiteEditorProvider implements vscode.CustomEditorProvider<GpbLit
 
 		return /* html */`
 			<!DOCTYPE html>
-			<html lang="en">
+			<html>
 			<head>
-				<meta charset="UTF-8">
+				<meta charset="UTF-8" />
+				<base href="${baseStr}" />
 
 				<!--
 				Use a content security policy to only allow loading images from https or from our extension directory,
@@ -373,22 +381,26 @@ export class GpbLiteEditorProvider implements vscode.CustomEditorProvider<GpbLit
 
 				<link href="${styleResetUri}" rel="stylesheet" />
 				<link href="${styleVSCodeUri}" rel="stylesheet" />
-				<link href="${styleMainUri}" rel="stylesheet" />
+				<link href="pawDraw.css" rel="stylesheet" />
+				<link href="top.css" rel="stylesheet" />
 
-				<title>Paw Draw</title>
+				<title>Gpb Lite</title>
 			</head>
 			<body>
+				<div class="corge">gpb ファイル</div>
 				<div class="drawing-canvas"></div>
 
-				<div class="drawing-controls">
-					<button data-color="black" class="black active" title="Black"></button>
-					<button data-color="white" class="white" title="White"></button>
-					<button data-color="red" class="red" title="Red"></button>
-					<button data-color="green" class="green" title="Green"></button>
-					<button data-color="blue" class="blue" title="Blue"></button>
+				<div>
+					<div>未実装: 材質</div>
+					<div id="materialelement"></div>
 				</div>
 
-				<script nonce="${nonce}" src="${scriptUri}"></script>
+				<div class="drawing-controls">
+					<button data-color="red" class="red" title="Red"></button>
+					<button data-color="green" class="green" title="Green"></button>
+				</div>
+
+				<script nonce="${nonce}" src="pawDraw.js"></script>
 			</body>
 			</html>`;
 	}

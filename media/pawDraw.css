@@ -53,14 +53,6 @@ html, body {
 	height: 100%;
 }
 
-.drawing-controls button.black:before {
-	background-color: #333;
-}
-
-.drawing-controls button.white:before {
-	background-color: white;
-}
-
 .drawing-controls button.red:before {
 	background-color: red;
 }
