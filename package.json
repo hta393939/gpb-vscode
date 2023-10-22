@@ -1,8 +1,14 @@
 {
   "name": "gpb-vscode",
   "displayName": "gpb-vscode",
-  "description": "gpb file lite looker",
+  "description": "gpb file lite looker for VS Code",
   "version": "0.0.1",
+  "publisher": "hta39393",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hta393939/gpb-vscode/"
+  },
   "engines": {
     "vscode": "^1.83.0"
   },
@@ -15,7 +21,24 @@
     "commands": [
       {
         "command": "gpb-vscode.helloWorld",
-        "title": "Hello World"
+        "title": "GPB: Hello World",
+        "category": "Paw Draw"
+      },
+      {
+        "command": "gpb-vscode.pawDraw.new",
+        "title": "GPB: Create new gpb Document",
+        "category": "Paw Draw"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "gpb-vscode.pawDraw",
+        "displayName": "GPB: Paw Draw",
+        "selector": [
+          {
+            "filenamePattern": "*.gpb"
+          }
+        ]
       }
     ]
   },
