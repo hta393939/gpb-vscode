@@ -41,7 +41,7 @@
 		}
 	}
 
-	class PawDrawEditor {
+	class GpbLiteEditor {
 		constructor( /** @type {HTMLElement} */ parent) {
 			this.ready = false;
 
@@ -171,7 +171,7 @@
 		}
 
 		/**
-		 * @param {Uint8Array | undefined} data 
+		 * @param {Uint8Array | undefined} data ドキュメントのバイナリデータ
 		 * @param {Array<Stroke> | undefined} strokes 
 		 */
 		async reset(data, strokes = []) {
@@ -226,7 +226,7 @@
 		}
 	}
 
-	const editor = new PawDrawEditor(document.querySelector('.drawing-canvas'));
+	const editor = new GpbLiteEditor(document.querySelector('.drawing-canvas'));
 
 	// Handle messages from the extension
 	window.addEventListener('message', async e => {
@@ -235,17 +235,17 @@
 			case 'init':
 				{
 					editor.setEditable(body.editable);
-					if (body.untitled) {
+					if (body.untitled) { // 初期バイナリで初期化
 						await editor.resetUntitled();
 						return;
 					} else {
-						// Load the initial image into the canvas.
+						// 既存のバイナリで初期化
 						await editor.reset(body.value);
 						return;
 					}
 				}
 			case 'update':
-				{
+				{ // 編集の edit を反映させる
 					const strokes = body.edits.map(edit => new Stroke(edit.color, edit.stroke));
 					await editor.reset(body.content, strokes)
 					return;
@@ -261,7 +261,7 @@
 		}
 	});
 
-	// Signal to VS Code that the webview is initialized.
+	// レンダラプロセスが準備できたことをメインプロセスへ通知する
 	vscode.postMessage({ type: 'ready' });
 }());
 

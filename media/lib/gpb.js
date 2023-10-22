@@ -166,10 +166,11 @@ class Scene {
 
 class Vertex {
     constructor() {
-        this.position = [];
-        this.normal = [];
-        this.uv = [];
-
+        this.position = [0, 0, 0];
+        this.normal = [0, 0, 1];
+        this.uv = [0, 0];
+        this.joints = [0, 0, 0, 0];
+        this.weights = [1, 0, 0, 0];
     }
 }
 
