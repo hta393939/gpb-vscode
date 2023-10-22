@@ -31,6 +31,11 @@ class Renderer {
             const control = new THREE.OrbitControls(this.camera, renderer.domElement);
             this.control = control;
         }
+
+        {
+            const light = new THREE.DirectionalLight();
+            scene.add(light);
+        }
         
         if (false) { // object, dom
             const control = new THREE.TrackballControls(this.camera, param.canvas);

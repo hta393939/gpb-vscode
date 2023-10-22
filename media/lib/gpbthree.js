@@ -21,15 +21,19 @@ class Maker {
     constructor() {
     }
 
-    attrtothree(attrName) {
-        const map = {
-            [GPB.VertexElement.POSITION]: 'position',
-            [GPB.VertexElement.NORMAL]: 'normal',
-            [GPB.VertexElement.UV0]: 'uv',
-            [GPB.VertexElement.WEIGHTS]: 'weights',
-            [GPB.VertexElement.JOINTS]: 'joints',
-        };
-        return map[attrName];
+/**
+ * 
+ * @param {number} usage 
+ * @returns {string}
+ */
+    attrtothree(usage) {
+        const usagetoattrname = [
+            '0', 'position', 'normal', 'color',
+            '4', '5', 'skinWeight', 'skinIndices',
+            'uv', '9', '10', '11',
+            '12', '13', '14', '15',
+        ];
+        return usagetoattrname[usage];
     }
 
 /**
@@ -68,35 +72,22 @@ class Maker {
                         log.log('半径', ranges.radius);
                     }
 
-                    for (let j = 0; j < 1; ++j) {
+                    for (const part of gpbmesh.parts) {
                         const onegeo = geo.clone();
-
-                        log.log('0x', fiattr[0].toString(16), fiattr[1].toString(16));
-
-                        let fis = [];
-                        if (fiattr[1] === this.GL_UNSIGNED_SHORT) {
-                            fis = this.r16s(p, fiattr[2] / 2);
-                            log.log('fis16', fis);
-                        } else {
-                            fis = this.r32s(p, fiattr[2] / 4);
-                            log.log('fis32', fis);
-                        }
-                        onegeo.setIndex(new THREE.BufferAttribute(fis, 1));
-
-                        const indexmax = Math.max(...fis);
-                        log.log('indexmax', indexmax); // 範囲チェック向け
-
+                        onegeo.setIndex(new THREE.BufferAttribute(part.fis, 1));
                         const mtl = new THREE.MeshStandardMaterial();
                         const m = new THREE.Mesh(onegeo, mtl);
-                        gr.userData.parts.push(m);
+
+                        //gr.userData.parts.push(m);
+                        gr.add(m);
                     }
                 }
             }
 
-            { // シーン 未実装
+            { // シーン 非実装
             }
 
-            if (false && inmodel._animations) { // アニメ 未実装
+            if (false && inmodel._animations) { // アニメ 非実装
                 log.log('animation chunk');
                 for (let i = 0; i < numanim; ++i) {
                     const obj = {};

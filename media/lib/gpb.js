@@ -202,7 +202,10 @@ class VertexElement {
     static WEIGHTS = 'BLENDWEIGHTS';
     static INDICES = 'BLENDINDICES';
     constructor() {
-        this.usage = '';
+/**
+ * 用途
+ */
+        this.usage = 0;
 /**
  * 値の個数
  */
@@ -223,6 +226,31 @@ class Bounds {
     }
 }
 
+class Part {
+/**
+ * u16 面頂点の型
+ * @default 0x1403
+ */
+    static GL_UNSIGNED_SHORT = 0x1403;
+
+    constructor() {
+/**
+ * 1つめ
+ */
+        this.foo = 0;
+/**
+ * 面頂点インデックスの要素型(u16 or u32)
+ * @default {Part.GL_UNSIGNED_SHORT}
+ */
+        this.faceIndexElement = Part.GL_UNSIGNED_SHORT;
+/**
+ * 一直線の頂点インデックス
+ * @type {number[]}
+ */
+        this.fis = [];
+    }    
+}
+
 /**
  * 1つ分のメッシュ
  */
@@ -235,17 +263,12 @@ class Mesh {
  */
         this.attrs = [];
 
-/**
- * @type {Vertex[]}
- */
-        this.vertices = [];
-
         this.bounds = new Bounds();
 
 /**
- * 未確定
+ * @type {Part[]}
  */
-        this.faceIndices = [];
+        this.parts = [];
     }
 }
 
@@ -281,6 +304,7 @@ class RefTable {
  * .gpb パーサーにしたい
  */
 class Model {
+
 /**
  * コンストラクター
  */
@@ -310,19 +334,6 @@ class Model {
  * @type {number}
  */
         this.cur = 0;
-
-/**
- * u16 面頂点の型
- * @default 0x1403
- */
-        this.GL_UNSIGNED_SHORT = 0x1403;
-
-        this.usagetoattrname = [
-            '0', 'position', 'normal', 'color',
-            '4', '5', '6', '7',
-            'uv', '9', '10', '11',
-            '12', '13', '14', '15',
-        ];
     }
 
 /**
@@ -513,13 +524,15 @@ class Model {
 
                     const partnum = this.r32s(p, 1)[0];
                     log.log('partnum', partnum);
-
+// TODO: ここ!!
                     for (let j = 0; j < partnum; ++j) {
+                        const part = new Part();
+
                         const fiattr = this.r32s(p, 3);
                         log.log('0x', fiattr[0].toString(16), fiattr[1].toString(16));
 
                         let fis = [];
-                        if (fiattr[1] === this.GL_UNSIGNED_SHORT) {
+                        if (fiattr[1] === Part.GL_UNSIGNED_SHORT) {
                             fis = this.r16s(p, fiattr[2] / 2);
                             log.log('fis16', fis);
                         } else {
@@ -529,9 +542,12 @@ class Model {
 
                         const indexmax = Math.max(...fis);
                         log.log('indexmax', indexmax); // 範囲チェック向け
-                    }
 
-                    //gr.add(mesh.mesh); // TODO: 違う方法で追加すること
+                        part.foo = fiattr[0];
+                        part.faceIndexElement = fiattr[1];
+                        part.fis = fis;
+                        gpbmesh.parts.push(part);
+                    }
                 }
             }
             const blockNum = this.r32s(p, 1)[0];
