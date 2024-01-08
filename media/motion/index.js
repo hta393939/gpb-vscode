@@ -49,7 +49,7 @@ class Misc {
     }
 
 /**
- * バイナリファイルをパースする
+ * バイナリファイルをパースする。ここ
  * @param {File} file 
  */
     async parseGPB(file) {
@@ -57,8 +57,8 @@ class Misc {
         const gpbmodel = new GPB.Model();
         await gpbmodel.parseGPB(ab);
         const maker = new GPB.Maker();
-        const model = maker.makeModel(gpbmodel);
-        this.renderer.scene.add(model);
+        const gr = maker.makeModel(gpbmodel);
+        this.renderer.scene.add(gr);
     }
 
     addHandler() {

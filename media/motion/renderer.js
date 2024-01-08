@@ -20,8 +20,8 @@ class Renderer {
         const scene = new THREE.Scene();
         this.scene = scene;
 
-        {
-            const camera = new THREE.PerspectiveCamera(45, 16/9, 1, 1000);
+        { // hgimg4 のデフォルトは fov 45度
+            const camera = new THREE.PerspectiveCamera(45, 1.5, 0.5, 768);
             this.camera = camera;
             camera.position.set(1, 2, 5);
             camera.lookAt(new THREE.Vector3(0, 1, 0));
